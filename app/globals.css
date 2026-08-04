@@ -1,0 +1,174 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Lantern — design tokens
+   A warm, romantic, fairy-tale palette. Everything is themeable via CSS
+   variables so dark/light/system can switch with a single attribute.
+--------------------------------------------------------------------------- */
+
+:root {
+  /* Light (paper illuminated by sunlight) */
+  --background: #faf6f0;
+  --background-2: #f3ece3;
+  --foreground: #3a3350;
+  --muted-foreground: #716a86;
+  --card: #fffbf6;
+  --card-foreground: #3a3350;
+  --border: #e6dccd;
+  --primary: #8a6bbf;          /* dusty violet */
+  --primary-foreground: #fff;
+  --secondary: #d9c6ee;        /* lavender */
+  --secondary-foreground: #4a3b68;
+  --accent: #d99a4e;           /* warm gold */
+  --accent-foreground: #4a2f0d;
+  --rose: #d98ba9;             /* muted rose */
+  --peach: #f3c6a1;            /* warm peach */
+  --night: #2a2440;            /* deep violet-blue for dark */
+  --glow: rgba(217, 154, 78, 0.55);
+  --glow-violet: rgba(138, 107, 191, 0.4);
+  --glow-strong: rgba(217, 154, 78, 0.45);
+  --ring: #8a5bbf;
+  --skeleton: #efe7da;
+  --danger: #c05a5a;
+  --success: #5a9a7b;
+  --sky-top: #f4e6da;
+  --sky-bottom: #cfc3e8;
+  --star: #b79b6a;
+
+  --font-serif: var(--font-display);
+  --radius-sm: 0.75rem;
+  --radius-md: 1.25rem;
+  --radius-lg: 2rem;
+}
+
+[data-theme="dark"] {
+  --background: #1a1730;
+  --background-foreground: #231e42;
+  --foreground: #ece7f7;
+  --muted-foreground: #a99fc4;
+  --card: #241f42;
+  --card-foreground: #ece7f7;
+  --border: #352d5a;
+  --primary: #b79ae8;
+  --primary-foreground: #2a1f52;
+  --secondary: #3a2f66;
+  --secondary-foreground: #e2dcf5;
+  --accent: #e6b06a;
+  --accent-foreground: #2c1a05;
+  --rose: #cf88a6;
+  --peach: #9c6b4e;
+  --glow: rgba(230, 176, 106, 0.6);
+  --glow-strong: rgba(183, 154, 232, 0.5);
+  --ring: #b79ae8;
+  --skeleton: #332a52;
+  --danger: #d98c8c;
+  --danger-foreground: #2b0f0f;
+  --success: #8fc7a6;
+  --sky-bottom: #12102a01;
+  --sky-bottom: #17142e;
+  --scan-theme: #ffd27a;
+}
+
+/* ------------------------------------------------------------------ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+.font-display {
+  font-family: var(--font-display), var(--font-serif), serif;
+}
+
+::selection {
+  background: var(--glow);
+  color: var(--foreground);
+}
+
+/* Focus ring - visible for accessibility */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+[data-theme="dark"] body { color-scheme: dark; }
+
+/* Respect reduced motion at the CSS layer */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+[data-reduced-motion="true"] *,
+[data-reduced-motion="true"] *::before,
+[data-reduced-motion="true"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+[data-high-contrast="true"] {
+  --border: #5a4f76;
+  --secondary: #d3c0ec;
+  --secondary-foreground: #241c42;
+}
+
+/* Utility classes for the glow aesthetic */
+.glow {
+  box-shadow: 0 0 24px 4px var(--glow);
+}
+.glow-soft {
+  box-shadow: 0 0 18px -2px var(--glow);
+}
+.text-glow {
+  text-shadow: 0 0 18px var(--glow-strong);
+}
+
+.bg-sky {
+  background: linear-gradient(
+    180deg,
+    var(--sky-top, #f6ecd9) 0%,
+    var(--sky-bottom) 100%
+  );
+}
+
+.card {
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+/* Slow, drifting breath for the ambient "lantern" motes */
+@keyframes lantern-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1);   opacity: 0.35; }
+  50%  { transform: translate3d(18px, -22px, 0) scale(1.15); opacity: 0.7; }
+  100% { transform: translate3d(0, 0, 0) scale(1);   opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mote {
+    animation: lantern-drift 9s ease-in-out infinite;
+    will-change: transform;
+  }
+}

@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: lantern
+    runtime: docker
+    plan: free
+    region: oregon
+    healthCheckPath: /
+    envVars:
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        value: https://japaexluuehzawndrylz.supabase.co
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        value: sb_publishable_wfievi-YS4pJSqHEIx8YQA_1UhIImBE
+      - key: SUPABASE_URL
+        value: https://japaexluuehzawndrylz.supabase.co
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false

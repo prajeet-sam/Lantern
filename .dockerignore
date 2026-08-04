@@ -1,0 +1,15 @@
+node_modules
+.next
+.netlify
+.vercel
+.env*
+npm-debug.log*
+Dockerfile
+docker-compose.yml
+render.yaml
+README.md
+docs
+scripts
+tests
+supabase
+SECURITY_SCALABILITY_AUDIT.md
