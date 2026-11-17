@@ -23,8 +23,8 @@ export function TrackView() {
   return (
     <div className="mx-auto w-full max-w-md space-y-5">
       <header className="px-1 pt-2">
-        <h1 className="font-display text-2xl font-semibold text-foreground">Track</h1>
-        <p className="text-sm text-muted-foreground">The more you log, the more personal Lantern becomes.</p>
+        <h1 className="font-display text-3xl font-semibold text-foreground">Daily log</h1>
+        <p className="text-sm text-muted-foreground">A quick check-in to notice what you need today.</p>
       </header>
 
       {/* Quick status */}

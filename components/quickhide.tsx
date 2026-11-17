@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { useStore } from "@/lib/store";
-import { hasVault } from "@/lib/vault";
+import { securityService } from "@/lib/security/service";
 import { LanternLogo } from "@/components/LanternLogo";
 
 /** True while the tab is hidden or the window has lost focus. */
@@ -36,7 +36,7 @@ function useIsCovered(enabled: boolean): boolean {
  */
 export function QuickHide() {
   const { settings } = useStore();
-  const enabled = !!settings.blurOnHide && hasVault();
+  const enabled = !!settings.blurOnHide && securityService.hasVault();
   const covered = useIsCovered(enabled);
 
   if (!covered) return null;

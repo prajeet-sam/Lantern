@@ -1,0 +1,10 @@
+import type { MetadataRoute } from "next";
+
+export default function sitemap(): MetadataRoute.Sitemap {
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://lanternforher.netlify.app";
+  return [
+    { url: base, changeFrequency: "monthly", priority: 1 },
+    { url: `${base}/privacy`, changeFrequency: "yearly", priority: 0.4 },
+    { url: `${base}/terms`, changeFrequency: "yearly", priority: 0.4 },
+  ];
+}

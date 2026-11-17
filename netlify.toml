@@ -1,0 +1,5 @@
+[[redirects]]
+from = "http://lanternforher.netlify.app/*"
+to = "https://lanternforher.netlify.app/:splat"
+status = 301
+force = true

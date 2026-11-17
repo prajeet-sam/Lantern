@@ -19,6 +19,8 @@ export function Onboarding() {
   const steps = 5;
 
   async function finish() {
+    if (!lastPeriod || lastPeriod > new Date().toISOString().slice(0, 10)) return;
+    if (cycleLen < 21 || cycleLen > 45 || periodLen < 2 || periodLen > 10) return;
     // Seed a period on the stated start day so history & predictions begin.
     await upsertLog(lastPeriod, { flow: "light" });
     await setSettings({
@@ -39,11 +41,12 @@ export function Onboarding() {
         <div className="mx-auto mb-6"><LanternLogo className="h-20 w-20" /></div>
 
         {step === 0 && (
-          <Step title="Welcome to your little corner of the sky" body="Lantern helps you understand your cycle, notice patterns, and prepare for what's ahead. Everything stays private on your device." />
+          <Step title="Your body has its own rhythm." body="Moonlit Garden helps you understand your cycle, notice patterns, and make space for yourself. Everything stays private on your device." />
         )}
         {step === 1 && (
           <Step title="When did your last period start?" body="Don't worry about being exact — you can correct this anytime.">
-            <input type="date" value={lastPeriod} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setLastPeriod(e.target.value)} className="w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm text-foreground outline-none focus:border-[var(--primary)]" />
+            <label className="block text-sm font-medium text-foreground" htmlFor="last-period">Last period start date</label>
+            <input id="last-period" required type="date" value={lastPeriod} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setLastPeriod(e.target.value)} className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm text-foreground outline-none focus:border-[var(--primary)]" />
           </Step>
         )}
         {step === 2 && (
@@ -96,6 +99,9 @@ export function Onboarding() {
             {step === steps - 1 ? "Let's begin ✨" : "Continue"}
           </Button>
         </div>
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          By continuing, you agree to our <a className="underline" href="/terms">terms</a> and <a className="underline" href="/privacy">privacy policy</a>.
+        </p>
       </div>
     </div>
   );

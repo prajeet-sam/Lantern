@@ -1,38 +1,38 @@
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------
-   Lantern — design tokens
-   A warm, romantic, fairy-tale palette. Everything is themeable via CSS
+   Moonlit Garden — design tokens
+   A warm, botanical, fairy-tale palette. Everything is themeable via CSS
    variables so dark/light/system can switch with a single attribute.
 --------------------------------------------------------------------------- */
 
 :root {
   /* Light (paper illuminated by sunlight) */
-  --background: #faf6f0;
-  --background-2: #f3ece3;
-  --foreground: #3a3350;
-  --muted-foreground: #716a86;
-  --card: #fffbf6;
-  --card-foreground: #3a3350;
-  --border: #e6dccd;
-  --primary: #8a6bbf;          /* dusty violet */
+  --background: #fbf8f5;
+  --background-2: #f4eef5;
+  --foreground: #393044;
+  --muted-foreground: #716878;
+  --card: #ffffff;
+  --card-foreground: #393044;
+  --border: #eee5e6;
+  --primary: #76648f;          /* deep lavender */
   --primary-foreground: #fff;
-  --secondary: #d9c6ee;        /* lavender */
-  --secondary-foreground: #4a3b68;
-  --accent: #d99a4e;           /* warm gold */
-  --accent-foreground: #4a2f0d;
-  --rose: #d98ba9;             /* muted rose */
-  --peach: #f3c6a1;            /* warm peach */
-  --night: #2a2440;            /* deep violet-blue for dark */
-  --glow: rgba(217, 154, 78, 0.55);
-  --glow-violet: rgba(138, 107, 191, 0.4);
-  --glow-strong: rgba(217, 154, 78, 0.45);
-  --ring: #8a5bbf;
-  --skeleton: #efe7da;
+  --secondary: #e8e0f2;        /* soft lilac */
+  --secondary-foreground: #40334e;
+  --accent: #d8b777;           /* champagne gold */
+  --accent-foreground: #40334e;
+  --rose: #d9aebb;             /* muted rose */
+  --peach: #f4d9c7;            /* soft peach */
+  --night: #40334e;            /* deep plum */
+  --glow: rgba(216, 183, 119, 0.42);
+  --glow-violet: rgba(169, 154, 203, 0.34);
+  --glow-strong: rgba(216, 183, 119, 0.35);
+  --ring: #76648f;
+  --skeleton: #f0e9e9;
   --danger: #c05a5a;
   --success: #5a9a7b;
-  --sky-top: #f4e6da;
-  --sky-bottom: #cfc3e8;
+  --sky-top: #fbf2ee;
+  --sky-bottom: #e8e0f2;
   --star: #b79b6a;
 
   --font-serif: var(--font-display);
@@ -41,14 +41,21 @@
   --radius-lg: 2rem;
 }
 
+.legal-content h2 {
+  color: var(--foreground);
+  font-family: var(--font-display), serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
 [data-theme="dark"] {
-  --background: #1a1730;
+  --background: #211b2c;
   --background-foreground: #231e42;
   --foreground: #ece7f7;
   --muted-foreground: #a99fc4;
-  --card: #241f42;
+  --card: #2d2540;
   --card-foreground: #ece7f7;
-  --border: #352d5a;
+  --border: #473b5d;
   --primary: #b79ae8;
   --primary-foreground: #2a1f52;
   --secondary: #3a2f66;

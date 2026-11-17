@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Lantern — Cycle & Wellness Companion",
-    short_name: "Lantern",
+    name: "Moonlit Garden — Cycle & Wellness Companion",
+    short_name: "Moonlit Garden",
     description:
       "A private, gentle companion for understanding your cycle, noticing patterns, and preparing for what's ahead.",
     start_url: "/",

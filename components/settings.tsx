@@ -8,7 +8,7 @@ import { APP_VERSION, buildBackup, downloadBackup, downloadCSV, downloadDoctorSu
 import { MAX_IMPORT_BYTES, parseExport } from "@/lib/validation";
 import { getNotificationStatus, requestNotificationPermission } from "@/lib/notifications";
 import { isValidPin } from "@/lib/pin";
-import { hasVault } from "@/lib/vault";
+import { securityService } from "@/lib/security/service";
 import { auditEventLabel, clearAudit, logAudit, readAudit } from "@/lib/audit";
 import { Card, Button } from "@/components/ui";
 import { Sheet } from "@/components/sheet";
@@ -444,7 +444,7 @@ function CustomTrackingCard() {
 
 function PrivacyLockCard() {
   const { settings, setSettings, enablePin, changePin, disablePin, lock } = useStore();
-  const hasPin = hasVault();
+  const hasPin = securityService.hasVault();
   const [open, setOpen] = useState<null | "set" | "change" | "remove">(null);
   const [current, setCurrent] = useState("");
   const [nextPin, setNextPin] = useState("");

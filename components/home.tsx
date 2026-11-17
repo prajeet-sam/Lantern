@@ -34,13 +34,13 @@ export function HomeView({ onStartPeriod }: { onStartPeriod: () => void }) {
   const journalsByDate = useMemo(() => new Map(journals.map((j) => [j.date, j])), [journals]);
 
   return (
-    <div className="mx-auto w-full max-w-md space-y-5">
+    <div className="mx-auto w-full max-w-md space-y-6">
       <header className="flex items-center justify-between px-1 pt-2">
         <div>
           <h1 className="font-display text-2xl font-semibold text-foreground">
-            {settings.displayName ? `Hello, ${settings.displayName} ✨` : "Your little corner of the sky ✨"}
+            {settings.displayName ? `Good morning, ${settings.displayName} 🌷` : "Welcome to your little garden 🌷"}
           </h1>
-          <p className="text-sm text-muted-foreground">{todayLabel}</p>
+          <p className="mt-1 text-sm text-muted-foreground">Here&apos;s a little space for you today · {todayLabel}</p>
         </div>
         {!ctx.todayHasPeriod && (
           <button
@@ -60,7 +60,7 @@ export function HomeView({ onStartPeriod }: { onStartPeriod: () => void }) {
           subtitle="Log your first period and Lantern will start learning your rhythm."
         />
       ) : (
-        <Card className="p-5 text-center">
+        <Card className="overflow-hidden bg-gradient-to-br from-[var(--card)] via-[var(--card)] to-[var(--secondary)]/45 p-5 text-center shadow-[0_16px_45px_rgba(118,100,143,0.12)]">
           <CycleRing
             prediction={prediction}
             cycleLen={cycleLen}
@@ -74,8 +74,8 @@ export function HomeView({ onStartPeriod }: { onStartPeriod: () => void }) {
       <Card className="p-5">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-xs uppercase tracking-widest text-muted-foreground">Next period</div>
-            <div className="font-display text-2xl font-semibold leading-snug text-foreground">
+            <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Your next period</div>
+            <div className="font-display text-3xl font-semibold leading-snug text-foreground">
               {prediction.available ? nextPeriodHeadline(ctx.nextPeriodInDays, ctx.todayHasPeriod) : "Learning your pattern…"}
             </div>
           </div>
@@ -154,8 +154,8 @@ export function HomeView({ onStartPeriod }: { onStartPeriod: () => void }) {
       </Card>
 
       {/* Daily check-in */}
-      <Button size="lg" className="w-full" onClick={() => setSheetOpen(true)}>
-        How are you today? ✨
+      <Button size="lg" className="w-full shadow-lg shadow-[var(--primary)]/20" onClick={() => setSheetOpen(true)}>
+        How are you feeling today? ✨
       </Button>
 
       <CheckInSheet date={ctx.today} open={sheetOpen} onClose={() => setSheetOpen(false)} />

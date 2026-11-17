@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { StoreProvider, useStore } from "@/lib/store";
 import { useTheme } from "@/lib/theme";
+import { Analytics } from "@/components/Analytics";
 
 function AppSettingsBridge() {
   const { settings } = useStore();
@@ -30,6 +31,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <StoreProvider>
       <AppSettingsBridge />
+      <Analytics />
       {children}
     </StoreProvider>
   );

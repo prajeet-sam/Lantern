@@ -10,36 +10,16 @@ import React, {
   useState,
 } from "react";
 import type { CustomItem, DailyLog, FlowLevel, JournalEntry, Settings } from "@/types";
-import {
-  clearAllData,
-  importAll,
-  readAllDailyLogs,
-  readAllJournals,
-  readSettings,
-  removeDailyLog,
-  removeJournal,
-  reencryptAll,
-  writeDailyLog,
-  writeJournal,
-  writeSettings,
-} from "@/lib/repository";
-import { clearVault, createVault, getActiveKey, hasVault, lockVault, unlockVault } from "@/lib/vault";
+import { dataStore } from "@/lib/repository";
+import { securityService } from "@/lib/security/service";
 import { todayKey } from "@/lib/dates";
 import { uid } from "@/lib/uid";
 import { customSlug } from "@/lib/constants";
 import { logAudit } from "@/lib/audit";
-import { deleteAccountRequest, deleteVault, isSyncConfigured, signOut as signOutRemote } from "@/lib/sync/client";
-import {
-  changeAccountPassword,
-  createSession,
-  openSession,
-  pushAndMerge,
-  recoverAccount,
-  restoreSession,
-  type Session,
-} from "@/lib/sync/scheduler";
+import { syncService } from "@/lib/sync/service";
 import { validatePassword, validateUsername } from "@/lib/sync/username";
 import type { ValidatedExport } from "@/lib/validation";
+import type { Session } from "@/lib/sync/scheduler";
 
 export const DEFAULT_SETTINGS: Settings = {
   typicalCycleLength: 28,
@@ -110,7 +90,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettingsState] = useState<Settings>(DEFAULT_SETTINGS);
   const [logs, setLogs] = useState<DailyLog[]>([]);
   const [journals, setJournals] = useState<JournalEntry[]>([]);
-  const [sync, setSync] = useState<SyncAccountState>({ status: isSyncConfigured() ? "signed_out" : "off" });
+  const [sync, setSync] = useState<SyncAccountState>({ status: syncService.isConfigured() ? "signed_out" : "off" });
   const logsRef = useRef<DailyLog[]>([]);
   const journalsRef = useRef<JournalEntry[]>([]);
   const settingsRef = useRef<Settings>(DEFAULT_SETTINGS);
@@ -132,9 +112,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   /** Persist a merged dataset to IndexedDB + memory. Does not schedule a push. */
   const persistMerged = useCallback(async (merged: ValidatedExport) => {
-    await importAll(
+    await dataStore.replaceAll(
       { dailyLogs: merged.dailyLogs, journals: merged.journals, settings: merged.settings },
-      getActiveKey(),
+      securityService.getActiveKey(),
     );
     const sorted = merged.dailyLogs.slice().sort((a, b) => a.date.localeCompare(b.date));
     logsRef.current = sorted;
@@ -152,7 +132,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     syncingRef.current = true;
     try {
       setSync((prev) => ({ ...prev, status: "syncing" }));
-      const res = await pushAndMerge(session, logsRef.current, journalsRef.current, settingsRef.current);
+      const res = await syncService.pushAndMerge(session, logsRef.current, journalsRef.current, settingsRef.current);
       if (!res.ok) {
         setSync((prev) => ({ ...prev, status: "error", lastError: res.error.message }));
         logAudit("sync_error");
@@ -174,18 +154,19 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   /** Load the decrypted dataset into memory. Uses the active key. */
   const loadDecrypted = useCallback(async () => {
-    const key = getActiveKey();
-    const [rawLogs, rawJournals] = await Promise.all([readAllDailyLogs(key), readAllJournals(key)]);
-    const sorted = rawLogs.slice().sort((a, b) => a.date.localeCompare(b.date));
+    const key = securityService.getActiveKey();
+    const snapshot = await dataStore.readAll(key);
+    const sorted = (snapshot.dailyLogs ?? []).slice().sort((a: DailyLog, b: DailyLog) => a.date.localeCompare(b.date));
     logsRef.current = sorted;
     setLogs(sorted);
-    setJournals(rawJournals);
+    setJournals(snapshot.journals ?? []);
   }, []);
 
   useEffect(() => {
     (async () => {
       try {
-        const [rawSettings] = await Promise.all([readSettings()]);
+        const snapshot = await dataStore.readAll(securityService.getActiveKey());
+        const rawSettings = snapshot.settings;
         if (rawSettings) {
           // Strip the legacy djb2 PIN marker (M2); PIN presence now comes from
           // the vault itself, so nothing needs migrating here.
@@ -195,7 +176,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             return merged;
           });
         }
-        if (hasVault()) {
+        if (securityService.hasVault()) {
           // Data is encrypted; wait for unlock before loading it.
           setLocked(true);
         } else {
@@ -213,7 +194,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const setSettings = useCallback(async (patch: Partial<Settings>) => {
     setSettingsState((prev) => {
       const next = { ...prev, ...patch } as Settings;
-      void writeSettings(next);
+      void dataStore.writeSettings(next);
       return next;
     });
     schedulePush();
@@ -236,7 +217,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       );
       logsRef.current = fresh;
       setLogs(fresh);
-      await writeDailyLog(date, next, getActiveKey());
+      await dataStore.writeLog(date, next, securityService.getActiveKey());
       schedulePush();
     },
     [schedulePush],
@@ -246,7 +227,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const fresh = logsRef.current.filter((l) => l.date !== date);
     logsRef.current = fresh;
     setLogs(fresh);
-    await removeDailyLog(date);
+    await dataStore.deleteLog(date);
     schedulePush();
   }, [schedulePush]);
 
@@ -273,7 +254,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           a.date.localeCompare(b.date),
         ),
       );
-      await writeJournal(next, getActiveKey());
+      await dataStore.writeJournal(next, securityService.getActiveKey());
       schedulePush();
     },
     [schedulePush],
@@ -281,13 +262,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const deleteJournal = useCallback(async (id: string) => {
     setJournals((cur) => cur.filter((j) => j.id !== id));
-    await removeJournal(id);
+    await dataStore.deleteJournal(id);
     schedulePush();
   }, [schedulePush]);
 
   const wipeAll = useCallback(async () => {
-    await clearAllData();
-    clearVault();
+    await dataStore.clear();
+    securityService.clearVault();
     logsRef.current = [];
     setLogs([]);
     setJournals([]);
@@ -296,8 +277,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     // If a sync account exists, remove the cloud copy too so the wipe sticks.
     const session = sessionRef.current;
     if (session) {
-      await deleteVault(session.user.id);
-      await signOutRemote();
+      await syncService.deleteVault(session.user.id);
+      await syncService.signOutRemote();
       sessionRef.current = null;
       setSync({ status: "signed_out" });
     }
@@ -326,7 +307,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           ...prev,
           customItems: [...(prev.customItems ?? []), newItem],
         } as Settings;
-        void writeSettings(next);
+        void dataStore.writeSettings(next);
         return next;
       });
       schedulePush();
@@ -341,7 +322,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         ...prev,
         customItems: (prev.customItems ?? []).filter((c) => c.id !== id),
       } as Settings;
-      void writeSettings(next);
+      void dataStore.writeSettings(next);
       return next;
     });
     schedulePush();
@@ -349,13 +330,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const importBackup = useCallback(
     async (data: { dailyLogs: DailyLog[]; journals: JournalEntry[]; settings?: Partial<Settings> }) => {
-      await importAll(
+      await dataStore.replaceAll(
         {
           dailyLogs: data.dailyLogs,
           journals: data.journals,
           settings: data.settings,
         },
-        getActiveKey(),
+        securityService.getActiveKey(),
       );
       const sorted = data.dailyLogs.slice().sort((a, b) => a.date.localeCompare(b.date));
       logsRef.current = sorted;
@@ -372,7 +353,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const unlock = useCallback(
     async (pin: string): Promise<boolean> => {
-      const key = await unlockVault(pin);
+      const key = await securityService.unlockVault(pin);
       if (!key) {
         logAudit("unlock_failed");
         return false;
@@ -386,7 +367,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   );
 
   const lock = useCallback(() => {
-    lockVault();
+    securityService.lockVault();
     logsRef.current = [];
     setLogs([]);
     setJournals([]);
@@ -396,31 +377,31 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   /** Set a PIN for the first time: create vault + encrypt all existing data. */
   const enablePin = useCallback(async (pin: string): Promise<boolean> => {
-    const oldKey = getActiveKey(); // null → plaintext
-    const newKey = await createVault(pin);
+    const oldKey = securityService.getActiveKey(); // null → plaintext
+    const newKey = await securityService.createVault(pin);
     if (!newKey) return false;
-    await reencryptAll(oldKey, newKey);
+    await dataStore.reencrypt(oldKey, newKey);
     logAudit("pin_set");
     return true;
   }, []);
 
   /** Change the PIN: verify old, re-encrypt everything with the new key. */
   const changePin = useCallback(async (oldPin: string, newPin: string): Promise<boolean> => {
-    const oldKey = await unlockVault(oldPin);
+    const oldKey = await securityService.unlockVault(oldPin);
     if (!oldKey) return false;
-    const newKey = await createVault(newPin);
+    const newKey = await securityService.createVault(newPin);
     if (!newKey) return false;
-    await reencryptAll(oldKey, newKey);
+    await dataStore.reencrypt(oldKey, newKey);
     logAudit("pin_changed");
     return true;
   }, []);
 
   /** Remove the PIN: verify, drop the vault, write data back to plaintext. */
   const disablePin = useCallback(async (pin: string): Promise<boolean> => {
-    const oldKey = await unlockVault(pin);
+    const oldKey = await securityService.unlockVault(pin);
     if (!oldKey) return false;
-    await reencryptAll(oldKey, null);
-    clearVault();
+    await dataStore.reencrypt(oldKey, null);
+    securityService.clearVault();
     logAudit("pin_disabled");
     return true;
   }, []);
@@ -433,7 +414,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (!u.ok) return { ok: false, error: u.error };
       const p = validatePassword(password);
       if (!p.ok) return { ok: false, error: p.error };
-      const res = await createSession(username, password, logsRef.current, journalsRef.current, settingsRef.current);
+      const res = await syncService.createSession(username, password, logsRef.current, journalsRef.current, settingsRef.current);
       if (!res.ok) return { ok: false, error: res.error.message };
       sessionRef.current = res.data.session;
       setSync({ status: "unlocked", username, lastSyncedAt: new Date().toISOString() });
@@ -445,11 +426,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const signInSync = useCallback(
     async (username: string, password: string): Promise<{ ok: boolean; error?: string }> => {
-      const res = await openSession(username, password);
+      const res = await syncService.openSession(username, password);
       if (!res.ok) return { ok: false, error: res.error.message };
       sessionRef.current = res.data;
       setSync((prev) => ({ ...prev, status: "syncing", username }));
-      const syncRes = await pushAndMerge(res.data, logsRef.current, journalsRef.current, settingsRef.current);
+      const syncRes = await syncService.pushAndMerge(res.data, logsRef.current, journalsRef.current, settingsRef.current);
       if (!syncRes.ok) {
         sessionRef.current = null;
         setSync((prev) => ({ ...prev, status: "error", lastError: syncRes.error.message }));
@@ -465,7 +446,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signOutSync = useCallback(async () => {
-    await signOutRemote();
+    await syncService.signOutRemote();
     sessionRef.current = null;
     setSync((prev) => ({ ...prev, status: "signed_out", lastSyncedAt: undefined, lastError: undefined }));
     logAudit("sync_signout");
@@ -483,7 +464,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (!session) return { ok: false, error: "Not signed in." };
       const p = validatePassword(newPassword);
       if (!p.ok) return { ok: false, error: p.error };
-      const res = await changeAccountPassword(session, newPassword);
+      const res = await syncService.changeAccountPassword(session, newPassword);
       if (!res.ok) return { ok: false, error: res.error.message };
       setSync((prev) => ({ ...prev, lastSyncedAt: new Date().toISOString() }));
       logAudit("sync_password");
@@ -496,7 +477,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     async (username: string, recoveryKey: string, newPassword: string): Promise<{ ok: boolean; error?: string }> => {
       const p = validatePassword(newPassword);
       if (!p.ok) return { ok: false, error: p.error };
-      const res = await recoverAccount(username, recoveryKey, newPassword);
+      const res = await syncService.recoverAccount(username, recoveryKey, newPassword);
       if (!res.ok) return { ok: false, error: res.error.message };
       sessionRef.current = null;
       setSync({ status: "signed_out" });
@@ -510,9 +491,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     async (password: string): Promise<{ ok: boolean; error?: string }> => {
       const username = sync.username;
       if (!username) return { ok: false, error: "No account to delete." };
-      const verify = await openSession(username, password);
+      const verify = await syncService.openSession(username, password);
       if (!verify.ok) return { ok: false, error: "Wrong password." };
-      const res = await deleteAccountRequest();
+      const res = await syncService.deleteAccountRequest();
       if (!res.ok) return { ok: false, error: res.error.message };
       sessionRef.current = null;
       setSync({ status: "signed_out" });
@@ -524,8 +505,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   // On app start, detect an existing account (session persists in localStorage).
   useEffect(() => {
-    if (!isSyncConfigured()) return;
-    restoreSession().then((res) => {
+    if (!syncService.isConfigured()) return;
+    syncService.restoreSession().then((res) => {
       if (res.ok) setSync((prev) => ({ ...prev, status: "locked", username: res.data.user.username }));
     });
   }, []);

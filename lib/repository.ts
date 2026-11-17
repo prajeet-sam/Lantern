@@ -3,6 +3,7 @@
 import { openDB, type IDBPDatabase } from "idb";
 import type { DailyLog, FlowLevel, JournalEntry, MoodId, Settings, SymptomId } from "@/types";
 import { decryptText, encryptText, type EncBlob } from "@/lib/crypto";
+import { createDataStore, type DataStoreAdapter } from "@/lib/storage";
 
 const STORE_LOGS = "daily-logs";
 const STORE_JOURNAL = "journals";
@@ -83,6 +84,43 @@ async function openSealed<T>(record: { enc?: EncBlob }, key: CryptoKey | null): 
     return null;
   }
 }
+
+const repositoryAdapter: DataStoreAdapter = {
+  async readData(key) {
+    const [dailyLogs, journals, settings] = await Promise.all([
+      readAllDailyLogs(key),
+      readAllJournals(key),
+      readSettings(),
+    ]);
+    return { dailyLogs, journals, settings };
+  },
+  async writeLog(date, value, key) {
+    await writeDailyLog(date, value, key);
+  },
+  async deleteLog(date) {
+    await removeDailyLog(date);
+  },
+  async writeJournal(entry, key) {
+    await writeJournal(entry, key);
+  },
+  async deleteJournal(id) {
+    await removeJournal(id);
+  },
+  async writeSettings(settings) {
+    await writeSettings(settings);
+  },
+  async replaceData(data, key) {
+    await importAll(data, key);
+  },
+  async clear() {
+    await clearAllData();
+  },
+  async reencrypt(oldKey, newKey) {
+    await reencryptAll(oldKey, newKey);
+  },
+};
+
+export const dataStore = createDataStore(repositoryAdapter);
 
 /** Build a DailyLog from a pre-encryption plaintext record. */
 function legacyDailyLog(r: EncLogRecord): DailyLog {
